@@ -44,7 +44,7 @@
     <script>
 
       const apiKey = "AAPK59169138d2654245bc0b04d5fc41c6b6QCRoNIqod5z5w7u8g2AIE5kJVQG1Mzq_BB9uqc554GluBHOyln0FCDRvezu9jVFM";
-      const basemapEnum = "ArcGIS:Navigation";
+      const basemapEnum = "ArcGIS:Navigation"; //Basemap layer service
 
       const map = L.map("map", {
         minZoom: 2
@@ -54,14 +54,10 @@
         apiKey: apiKey
       }).addTo(map);
 
-      L.esri.Vector.vectorTileLayer(
-        "https://vectortileservices8.arcgis.com/87xMVlxSyDt491tZ/arcgis/rest/services/PDX_Trees/VectorTileServer"
-      ).addTo(map);
-
-      L.esri.featureLayer({
-        url: "https://services8.arcgis.com/87xMVlxSyDt491tZ/arcgis/rest/services/street_trees_pdx/FeatureServer/0"
-      });
-
+     // Add a custom basemap layer style 
+    //  L.esri.Vector.vectorBasemapLayer("6976148c11bd497d8624206f9ee03e30", {
+    //     apiKey: apiKey
+    //   }).addTo(map);
 
     </script>
   </body>
