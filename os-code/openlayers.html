@@ -30,12 +30,14 @@
 
     </style>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.7.0/css/ol.css" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.7.0/build/ol.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/css/ol.css" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/build/ol.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ol-mapbox-style@6.1.4/dist/olms.js" type="text/javascript"></script>
-
+<!--Import REST JS packages-->
     <script src="https://unpkg.com/@esri/arcgis-rest-request@3.0.0/dist/umd/request.umd.js"></script>
+    <script src="https://unpkg.com/@esri/arcgis-rest-auth@3.0.0/dist/umd/auth.umd.js"></script>
     <script src="https://unpkg.com/@esri/arcgis-rest-feature-layer@3.0.0/dist/umd/feature-layer.umd.js"></script>
+    <script src="https://unpkg.com/@esri/arcgis-rest-demographics@3.0.0/dist/umd/demographics.umd.js"></script>
     <script src="https://unpkg.com/ol-popup@4.0.0"></script>
     <link rel="stylesheet" href="https://unpkg.com/ol-popup@4.0.0/src/ol-popup.css" />
 
@@ -45,12 +47,19 @@
     <div id="map"></div>
     <select id="query-select">
       <option value="1=1" selected>Choose a WHERE clause...</option>
-      <option value="Condition = 'Poor'">Condition= 'Poor'</option>
-      <option value="Condition = 'Good'">Condition = 'Good'</option>
+      <option value="UseType = 'Residential'">UseType = 'Residential'</option>
+      <option value="UseType = 'Government'">UseType = 'Government'</option>
+      <option value="UseType = 'Irrigated Farm'">UseType = 'Irrigated Farm'</option>
+      <option value="TaxRateArea = 10853">TaxRateArea = 10853</option>
+      <option value="TaxRateArea = 10860">TaxRateArea = 10860</option>
+      <option value="TaxRateArea = 08637">TaxRateArea = 08637</option>
+      <option value="Roll_LandValue > 1000000">Roll_LandValue &gt; 1000000</option>
+      <option value="Roll_LandValue < 1000000">Roll_LandValue &lt; 1000000</option>
     </select>
     <script>
 
-      const apiKey = "AAPK59169138d2654245bc0b04d5fc41c6b6QCRoNIqod5z5w7u8g2AIE5kJVQG1Mzq_BB9uqc554GluBHOyln0FCDRvezu9jVFM";
+      const apiKey = ""
+;
 
       const map = new ol.Map({
         target: "map"
@@ -58,36 +67,38 @@
 
       map.setView(
         new ol.View({
-          center: ol.proj.fromLonLat([-122, 45]),
+          center: ol.proj.fromLonLat([-118.805, 34.027]),
           zoom: 12
         })
       );
 
-      const basemapId = "ArcGIS:Streets";
+      const basemapId = "ArcGIS:Community";
       const basemapURL = "https://basemaps-api.arcgis.com/arcgis/rest/services/styles/" + basemapId + "?type=style&token=" + apiKey;
 
+      //Add a load event handler to the olms function call. Inside, create a Vector layer and save it to a parcelLayer variable. Add it to the map with map.addLayer.
       const parcelLayer = new ol.layer.Vector();
       olms(map, basemapURL).then((map) => {
 
         map.addLayer(parcelLayer);
-
+        
+        const popup = new Popup();
+        map.addOverlay(popup);
       });
 
-      // Query SQL 
+      // Query SQL: NOTE: The maximum number of features returned by a query for hosted feature layers is 2000. To return more, you need to detect the request exceeded the maximum feature amount with exceededTransferLimit, and then use the resultOffset parameter to make multiple requests with the appropriate offset values. 
 
       function executeQuery(whereClause, geometry) {
+        // Call queryFeatures operation
         arcgisRest
           .queryFeatures({
-            url: "https://services8.arcgis.com/87xMVlxSyDt491tZ/arcgis/rest/services/street_trees_pdx/FeatureServer/0",
+            url:"https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/LA_County_Parcels/FeatureServer/0",
             geometry: geometry,
             geometryType: "esriGeometryEnvelope",
             inSR: 4326, // EPSG:4326 uses latitudes and longitudes
-            spatialRel: "esriSpatialRelIntersects",
             where: whereClause,
-
             f: "geojson",
             returnGeometry: true,
-            outFields: ["Condition", "Common"]
+            outFields: ["APN", "UseType", "TaxRateCity", " Roll_LandValue"]
           })
 
           .then((response) => {
@@ -104,7 +115,8 @@
 
       }
 
-      // Listen for changes
+      // Listen for changes: You need to calculate the extent of the current map view in latitude and longitude. You can use View.calculateExtent to get the extent, and proj.transformExtent to convert it to the EPSG:4326 spatial reference.
+
       const select = document.getElementById("query-select");
       select.addEventListener("change", () => {
         const whereClause = select.value;

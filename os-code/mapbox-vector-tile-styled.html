@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
+    <link
+      href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body,
+      #map {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 14px;
+        color: #323232;
+      }
+      .map-overlay {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.8);
+        margin-right: 20px;
+        font-family: Arial, sans-serif;
+        overflow: auto;
+        border-radius: 3px;
+      }
+
+      #legend {
+        padding: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        line-height: 18px;
+        height: 150px;
+        margin-top: 40px;
+        width: 100px;
+      }
+      .legend-key {
+        display: inline-block;
+        border-radius: 20%;
+        width: 10px;
+        height: 10px;
+        margin-right: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="map-overlay" id="legend">
+      <p><b>Tree health</b></p>
+    </div>
+    <script>
+      // Display a basemap layer
+
+      const apiKey =
+        "";
+
+      const basemapEnum = "6976148c11bd497d8624206f9ee03e30";
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: `https://basemaps-api.arcgis.com/arcgis/rest/services/styles/${basemapEnum}?type=style&apiKey=${apiKey}`,
+        zoom: 12,
+        center: [-122.675, 45.5051],
+      });
+
+      const layers = [
+        {
+          id: "treefair",
+          type: "circle",
+          source: "pdx",
+          "source-layer": "PDX Trees",
+          filter: ["==", "_symbol", 0],
+          minzoom: 9,
+          layout: {},
+          paint: {
+            "circle-color": "#38A800",
+            "circle-radius": {
+              stops: [
+                [2, 10],
+                [5, 8],
+                [10, 3],
+              ],
+            },
+          },
+        },
+        {
+          id: "treegood",
+          type: "circle",
+          source: "pdx",
+          "source-layer": "PDX Trees",
+          filter: ["==", "_symbol", 1],
+          minzoom: 9,
+          layout: {},
+          paint: {
+            "circle-color": "#267300",
+            "circle-radius": 3,
+          },
+        },
+        {
+          id: "treepoor",
+          type: "circle",
+          source: "pdx",
+          "source-layer": "PDX Trees",
+          filter: ["==", "_symbol", 2],
+          minzoom: 9,
+          layout: {},
+          paint: {
+            "circle-color": "#E6E600",
+            "circle-radius": 3,
+          },
+        },
+        {
+          id: "treedead",
+          type: "circle",
+          source: "pdx",
+          "source-layer": "PDX Trees",
+          filter: ["==", "_symbol", 3],
+          minzoom: 9,
+          layout: {},
+          paint: {
+            "circle-color": "#ED5151",
+            "circle-radius": 3,
+          },
+        },
+      ];
+
+      map.on("load", () => {
+
+
+        // Add a vector tile layer
+
+        map.addSource("pdx", {
+          type: "vector",
+          tiles: [
+            "https://vectortileservices8.arcgis.com/87xMVlxSyDt491tZ/arcgis/rest/services/treevtl_demo/VectorTileServer/tile/{z}/{y}/{x}.pbf",
+          ],
+        });
+
+        layers.forEach((layer) => {
+          map.addLayer(layer);
+        });
+
+        const popup = new mapboxgl.Popup({
+          closeButton: false,
+        });
+
+        map.on("mousemove", "treepoor", (e) => {
+          map.getCanvas().style.cursor = "pointer";
+          const feature = e.features[0];
+          const relatedFeatures = map.querySourceFeatures("treepoor", {
+            sourceLayer: "PDX Trees",
+            filter: ["in", "Common", feature.properties.Common],
+          });
+
+          popup
+            .setLngLat(e.lngLat)
+            .setHTML(`<b>Common Name: ${feature.properties.Common}</b>`)
+            .addTo(map);
+        });
+
+        map.on("mouseleave", "treepoor", (e) => {
+          map.getCanvas().style.cursor = "";
+          popup.remove();
+        });
+
+        const conditions = ["Good", "Fair", "Poor", "Dead"];
+        const colors = ["#267300", "#38A800", "#E6E600", "#ED5151"];
+
+        for (i = 0; i < conditions.length; i++) {
+          const layer = conditions[i];
+          const color = colors[i];
+          const item = document.createElement("div");
+          const key = document.createElement("span");
+          key.className = "legend-key";
+          key.style.backgroundColor = color;
+
+          const value = document.createElement("span");
+          value.innerHTML = layer;
+          item.appendChild(key);
+          item.appendChild(value);
+          legend.appendChild(item);
+        }
+      });
+    </script>
+  </body>
+</html>

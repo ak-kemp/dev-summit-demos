@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ArcGIS REST JS Browser OAuth2</title>
+
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+      crossorigin="anonymous"
+    />
+    <style>
+      body {
+        font-family: monospace;
+        color: black;
+        font-size: 20px;
+      }
+      pre {
+        overflow: auto;
+        padding: 1rem;
+      }
+
+      .col-xs-12 {
+        margin-top: 10%;
+      }
+
+      #withPopupButton,
+      #signOutButton {
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app-wrapper">
+      <div class="container">
+        <div class="row">
+          <div class="col-xs-12">
+            <!-- Event listeners planned to be added to these buttons. -->
+            <button class="btn btn-primary btn-block" id="withPopupButton">Sign In</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-xs-12 text-center">
+            <p id="sessionInfo" class="info-panel">
+              <!-- Information will be injected here. -->
+            </p>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-xs-12 text-center">
+            <!-- Event listeners will be added to these buttons. -->
+            <button class="btn btn-primary btn-block btn-warning" id="signOutButton">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { ArcGISIdentityManager } from 'https://cdn.skypack.dev/@esri/arcgis-rest-request@4.0.0';
+
+      let session = null;
+      const clientId = "";
+      const redirectUri = window.location.origin + "/authenticate.html";
+
+      const serializedSession = localStorage.getItem("__ARCGIS_REST_USER_SESSION__"); // Check to see if there is a serialized session in local storage.
+
+      if (serializedSession !== null && serializedSession !== "undefined") {
+        session = ArcGISIdentityManager.deserialize(serializedSession);
+      }
+
+      function updateSessionInfo(session) {
+        let sessionInfo = document.getElementById("sessionInfo");
+
+        if (session) {
+          sessionInfo.classList.remove("bg-info");
+          sessionInfo.classList.add("bg-success");
+          sessionInfo.innerHTML = "Logged in as " + session.username;
+          localStorage.setItem("__ARCGIS_REST_USER_SESSION__", session.serialize());
+        } else {
+          sessionInfo.classList.remove("bg-success");
+          sessionInfo.classList.add("bg-info");
+          sessionInfo.innerHTML = "Log in to start a session.";
+        }
+      }
+
+      updateSessionInfo(session);
+
+
+      document.getElementById("withPopupButton").addEventListener("click", (event) => {
+        // Begin an OAuth2 login using a popup.
+        ArcGISIdentityManager.beginOAuth2({
+          clientId: clientId,
+          redirectUri: redirectUri,
+          popup: true
+        })
+          .then((newSession) => {
+            // Upon a successful login, update the session with the new session.
+            session = newSession;
+            console.log(session);
+            updateSessionInfo(session);
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+        event.preventDefault();
+      });
+
+      document.getElementById("signOutButton").addEventListener("click", (event) => {
+        event.preventDefault();
+        // call the signOut method to invalidate the token.
+        session.signOut().then(()=>{
+          session = null; // Clear the session from memory.
+          localStorage.removeItem("__ARCGIS_REST_USER_SESSION__");
+          updateSessionInfo();
+        });
+      });
+
+    </script>
+
+  </body>
+</html>
